@@ -1,469 +1,510 @@
 <!DOCTYPE html>
-
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
 <!-- PWA settings -->
-
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Clock">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#131A22">
+<meta name="theme-color" content="#0a1518">
 
 <title>Clock</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-html, body {
-width: 100%;
-height: 100%;
-overflow: hidden;
-background: #131A22;
-font-family: ‘Amazon Ember’, ‘Helvetica Neue’, Arial, sans-serif;
-color: #131A22;
--webkit-font-smoothing: antialiased;
-cursor: default;
--webkit-tap-highlight-color: transparent;
-}
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a1518;
+    font-family: 'Amazon Ember', 'Helvetica Neue', Arial, sans-serif;
+    color: #FFFFFF;
+    -webkit-font-smoothing: antialiased;
+    cursor: default;
+    -webkit-tap-highlight-color: transparent;
+  }
 
-.container {
-width: 100vw;
-height: 100vh;
-background: #FFFFFF;
-display: flex;
-flex-direction: column;
-justify-content: center;
-align-items: center;
-position: relative;
-padding-top: env(safe-area-inset-top);
-padding-bottom: env(safe-area-inset-bottom);
-padding-left: env(safe-area-inset-left);
-padding-right: env(safe-area-inset-right);
-}
+  .container {
+    width: 100vw;
+    height: 100vh;
+    /* 静的なメタリック背景 - 多層グラデーション */
+    background:
+      radial-gradient(ellipse 60% 40% at 30% 15%, rgba(160, 200, 215, 0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 30% at 75% 85%, rgba(50, 100, 130, 0.25) 0%, transparent 65%),
+      radial-gradient(ellipse 80% 50% at 50% 50%, rgba(70, 120, 145, 0.15) 0%, transparent 70%),
+      linear-gradient(180deg,
+        #0a1518 0%,
+        #15252c 25%,
+        #243a44 50%,
+        #1c2f38 75%,
+        #0f1c22 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    overflow: hidden;
+  }
 
-.top-bar {
-position: absolute;
-top: 0;
-left: 0;
-right: 0;
-height: calc(56px + env(safe-area-inset-top));
-padding-top: env(safe-area-inset-top);
-padding-left: calc(32px + env(safe-area-inset-left));
-padding-right: calc(32px + env(safe-area-inset-right));
-background: #131A22;
-display: flex;
-align-items: center;
-z-index: 10;
-}
+  /* 鏡面反射の質感（静的レイヤー） */
+  .surface {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      /* 上からの光 */
+      linear-gradient(180deg, rgba(220, 235, 240, 0.08) 0%, transparent 30%),
+      /* 細かい質感 */
+      repeating-linear-gradient(
+        180deg,
+        transparent 0px,
+        transparent 2px,
+        rgba(255, 255, 255, 0.012) 2px,
+        rgba(255, 255, 255, 0.012) 3px
+      );
+  }
 
-.logo {
-font-size: 22px;
-font-weight: 700;
-letter-spacing: -0.5px;
-color: #FFFFFF;
-position: relative;
-padding-bottom: 4px;
-}
+  /* グレア（光のオーバーレイ） */
+  .glare {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    background:
+      radial-gradient(ellipse 90% 50% at 50% -10%, rgba(200, 220, 230, 0.15) 0%, transparent 70%),
+      radial-gradient(ellipse 70% 40% at 50% 110%, rgba(40, 70, 85, 0.35) 0%, transparent 70%);
+    mix-blend-mode: overlay;
+  }
 
-.logo::after {
-content: ‘’;
-position: absolute;
-bottom: 0;
-left: 6px;
-right: 12px;
-height: 8px;
-border-bottom: 2.5px solid #FF9900;
-border-radius: 0 0 50% 50% / 0 0 100% 100%;
-transform: scaleY(0.6);
-}
+  /* インタラクション用のキャンバス（カーソル追従の波紋） */
+  .ripple-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+  }
 
-.top-bar-meta {
-margin-left: auto;
-font-size: 12px;
-color: #FFFFFF;
-letter-spacing: 1.5px;
-text-transform: uppercase;
-font-weight: 500;
-opacity: 0.9;
-}
+  .top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(56px + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+    padding-left: calc(32px + env(safe-area-inset-left));
+    padding-right: calc(32px + env(safe-area-inset-right));
+    background: linear-gradient(180deg, rgba(15, 25, 30, 0.7) 0%, rgba(15, 25, 30, 0.3) 100%);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    display: flex;
+    align-items: center;
+    z-index: 10;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+  }
 
-.clock-wrapper {
-text-align: center;
-position: relative;
-z-index: 1;
--webkit-user-select: none;
-user-select: none;
-}
+  .logo {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    background: linear-gradient(180deg, #ffffff 0%, #b8c8d0 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  }
 
-.timezone-label {
-font-size: 24px;
-letter-spacing: 2px;
-color: #131A22;
-margin-bottom: 24px;
-font-weight: 700;
-opacity: 0.6;
-}
+  /* メインコンテンツを完全中央に */
+  .main-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 3;
+    gap: 40px;
+  }
 
-.time {
-font-size: 180px;
-font-weight: 600;
-letter-spacing: -4px;
-line-height: 1;
-color: #131A22;
-font-variant-numeric: tabular-nums;
-display: flex;
-justify-content: center;
-align-items: baseline;
-}
+  .clock-wrapper {
+    text-align: center;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 
-.time .colon {
-color: #131A22;
-margin: 0 8px;
-font-weight: 500;
-}
+  .timezone-label {
+    font-size: 24px;
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+    font-weight: 700;
+    background: linear-gradient(180deg, #ffffff 0%, #a8b8c0 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
+    opacity: 0.95;
+  }
 
-.date-row {
-display: flex;
-align-items: center;
-justify-content: center;
-gap: 24px;
-margin-top: 32px;
-font-size: 20px;
-color: #131A22;
-font-weight: 600;
-letter-spacing: 1px;
-}
+  .time {
+    font-size: 180px;
+    font-weight: 600;
+    letter-spacing: -4px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    background: linear-gradient(180deg,
+      #ffffff 0%,
+      #e8eef0 25%,
+      #c0d0d8 50%,
+      #e8eef0 75%,
+      #ffffff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 4px 24px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 60px rgba(125, 211, 232, 0.15));
+  }
 
-.date-row .divider {
-width: 5px;
-height: 5px;
-background: #131A22;
-border-radius: 50%;
-opacity: 0.5;
-}
+  .time .colon {
+    background: linear-gradient(180deg, #7dd3e8 0%, #4ea8c0 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0 8px;
+    font-weight: 500;
+  }
 
-.weekday {
-color: #131A22;
-font-weight: 700;
-}
+  .date-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 32px;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    background: linear-gradient(180deg, #ffffff 0%, #b8c8d0 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
 
-.ambient {
-position: absolute;
-top: 50%;
-left: 50%;
-transform: translate(-50%, -50%);
-width: 900px;
-height: 900px;
-background: radial-gradient(circle, rgba(255, 153, 0, 0.06) 0%, transparent 65%);
-pointer-events: none;
-z-index: 0;
-}
+  .date-row .divider {
+    width: 5px;
+    height: 5px;
+    background: linear-gradient(180deg, #7dd3e8, #4ea8c0);
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(125, 211, 232, 0.6);
+  }
 
-/* === To Do panel (desktop only) === */
-.todo-panel {
-display: none;
-position: absolute;
-bottom: 40px;
-left: 50%;
-transform: translateX(-50%);
-width: min(640px, 80vw);
-max-height: 28vh;
-background: rgba(255, 255, 255, 0.85);
-backdrop-filter: blur(12px);
--webkit-backdrop-filter: blur(12px);
-border: 1px solid rgba(19, 26, 34, 0.08);
-border-radius: 12px;
-padding: 20px 24px;
-z-index: 5;
-box-shadow: 0 8px 32px rgba(19, 26, 34, 0.06);
-display: flex;
-flex-direction: column;
-}
+  /* === To Do panel (desktop only) === */
+  .todo-panel {
+    display: none;
+    width: min(640px, 80vw);
+    max-height: 28vh;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 20px 24px;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      0 1px 0 rgba(255, 255, 255, 0.15) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.2) inset;
+    flex-direction: column;
+  }
 
-.todo-header {
-display: flex;
-align-items: center;
-justify-content: space-between;
-margin-bottom: 12px;
-flex-shrink: 0;
-}
+  .todo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+  }
 
-.todo-title {
-font-size: 11px;
-letter-spacing: 3px;
-text-transform: uppercase;
-font-weight: 700;
-color: #131A22;
-opacity: 0.7;
-}
+  .todo-title {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #FFFFFF;
+    opacity: 0.85;
+  }
 
-.todo-count {
-font-size: 11px;
-letter-spacing: 1px;
-color: #131A22;
-opacity: 0.5;
-font-weight: 500;
-}
+  .todo-count {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: #FFFFFF;
+    opacity: 0.6;
+    font-weight: 500;
+  }
 
-.todo-input-row {
-display: flex;
-gap: 8px;
-margin-bottom: 12px;
-flex-shrink: 0;
-}
+  .todo-input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+  }
 
-.todo-input {
-flex: 1;
-border: none;
-border-bottom: 1.5px solid rgba(19, 26, 34, 0.15);
-padding: 8px 4px;
-font-size: 15px;
-font-family: inherit;
-color: #131A22;
-background: transparent;
-outline: none;
-transition: border-color 0.2s;
-}
+  .todo-input {
+    flex: 1;
+    border: none;
+    border-bottom: 1.5px solid rgba(255, 255, 255, 0.2);
+    padding: 8px 4px;
+    font-size: 15px;
+    font-family: inherit;
+    color: #FFFFFF;
+    background: transparent;
+    outline: none;
+    transition: border-color 0.2s;
+  }
 
-.todo-input:focus {
-border-bottom-color: #FF9900;
-}
+  .todo-input:focus {
+    border-bottom-color: #7dd3e8;
+  }
 
-.todo-input::placeholder {
-color: rgba(19, 26, 34, 0.3);
-}
+  .todo-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+  }
 
-.todo-add-btn {
-border: none;
-background: #131A22;
-color: #FFFFFF;
-padding: 0 16px;
-font-size: 13px;
-font-weight: 600;
-letter-spacing: 1px;
-border-radius: 6px;
-cursor: pointer;
-font-family: inherit;
-transition: opacity 0.2s;
-}
+  .todo-add-btn {
+    border: none;
+    background: linear-gradient(180deg, #7dd3e8 0%, #4ea8c0 100%);
+    color: #0a1518;
+    padding: 0 16px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(125, 211, 232, 0.3), 0 1px 0 rgba(255, 255, 255, 0.4) inset;
+  }
 
-.todo-add-btn:hover {
-opacity: 0.85;
-}
+  .todo-add-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(125, 211, 232, 0.4), 0 1px 0 rgba(255, 255, 255, 0.4) inset;
+  }
 
-.todo-add-btn:active {
-transform: translateY(1px);
-}
+  .todo-add-btn:active {
+    transform: translateY(1px);
+  }
 
-.todo-list {
-list-style: none;
-overflow-y: auto;
-flex: 1;
-margin: 0 -8px;
-padding: 0 8px;
-}
+  .todo-list {
+    list-style: none;
+    overflow-y: auto;
+    flex: 1;
+    margin: 0 -8px;
+    padding: 0 8px;
+  }
 
-.todo-list::-webkit-scrollbar {
-width: 6px;
-}
+  .todo-list::-webkit-scrollbar {
+    width: 6px;
+  }
 
-.todo-list::-webkit-scrollbar-thumb {
-background: rgba(19, 26, 34, 0.15);
-border-radius: 3px;
-}
+  .todo-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+  }
 
-.todo-item {
-display: flex;
-align-items: center;
-gap: 12px;
-padding: 8px 4px;
-border-bottom: 1px solid rgba(19, 26, 34, 0.06);
-font-size: 14px;
-color: #131A22;
-transition: opacity 0.2s;
-}
+  .todo-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 14px;
+    color: #FFFFFF;
+    transition: opacity 0.2s;
+  }
 
-.todo-item:last-child {
-border-bottom: none;
-}
+  .todo-item:last-child {
+    border-bottom: none;
+  }
 
-.todo-checkbox {
-width: 18px;
-height: 18px;
-border: 1.5px solid rgba(19, 26, 34, 0.3);
-border-radius: 4px;
-cursor: pointer;
-flex-shrink: 0;
-display: flex;
-align-items: center;
-justify-content: center;
-transition: all 0.15s;
-background: transparent;
-}
+  .todo-checkbox {
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid rgba(255, 255, 255, 0.35);
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    background: transparent;
+  }
 
-.todo-checkbox:hover {
-border-color: #FF9900;
-}
+  .todo-checkbox:hover {
+    border-color: #7dd3e8;
+  }
 
-.todo-checkbox.checked {
-background: #FF9900;
-border-color: #FF9900;
-}
+  .todo-checkbox.checked {
+    background: linear-gradient(180deg, #7dd3e8, #4ea8c0);
+    border-color: #7dd3e8;
+    box-shadow: 0 0 8px rgba(125, 211, 232, 0.5);
+  }
 
-.todo-checkbox.checked::after {
-content: ‘’;
-width: 5px;
-height: 9px;
-border: solid #FFFFFF;
-border-width: 0 2px 2px 0;
-transform: rotate(45deg) translate(-1px, -1px);
-}
+  .todo-checkbox.checked::after {
+    content: '';
+    width: 5px;
+    height: 9px;
+    border: solid #0a1518;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translate(-1px, -1px);
+  }
 
-.todo-text {
-flex: 1;
-word-break: break-word;
-transition: opacity 0.2s;
-}
+  .todo-text {
+    flex: 1;
+    word-break: break-word;
+    transition: opacity 0.2s;
+  }
 
-.todo-item.done .todo-text {
-text-decoration: line-through;
-opacity: 0.4;
-}
+  .todo-item.done .todo-text {
+    text-decoration: line-through;
+    opacity: 0.4;
+  }
 
-.todo-delete {
-border: none;
-background: transparent;
-color: rgba(19, 26, 34, 0.3);
-cursor: pointer;
-font-size: 18px;
-line-height: 1;
-padding: 4px 8px;
-border-radius: 4px;
-transition: all 0.15s;
-font-family: inherit;
-flex-shrink: 0;
-}
+  .todo-delete {
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    font-family: inherit;
+    flex-shrink: 0;
+  }
 
-.todo-delete:hover {
-color: #d13438;
-background: rgba(209, 52, 56, 0.08);
-}
+  .todo-delete:hover {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.12);
+  }
 
-.todo-empty {
-text-align: center;
-padding: 16px 0;
-font-size: 13px;
-color: rgba(19, 26, 34, 0.35);
-font-style: italic;
-}
+  .todo-empty {
+    text-align: center;
+    padding: 16px 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+  }
 
-/* デスクトップ表示時のみTo Doパネルを表示 */
-@media (min-width: 1024px) and (min-height: 700px) {
-.todo-panel {
-display: flex;
-}
-}
+  /* デスクトップ表示時のみTo Doパネルを表示 */
+  @media (min-width: 1024px) and (min-height: 700px) {
+    .todo-panel {
+      display: flex;
+    }
+  }
 
-@media (max-width: 900px) {
-.time { font-size: 110px; letter-spacing: -3px; }
-.date-row { font-size: 14px; gap: 16px; }
-}
+  @media (max-width: 900px) {
+    .time { font-size: 110px; letter-spacing: -3px; }
+    .date-row { font-size: 14px; gap: 16px; }
+  }
 
-@media (max-width: 500px) {
-.time { font-size: 72px; letter-spacing: -2px; }
-.top-bar { padding-left: calc(16px + env(safe-area-inset-left)); padding-right: calc(16px + env(safe-area-inset-right)); }
-.top-bar-meta { display: none; }
-}
+  @media (max-width: 500px) {
+    .time { font-size: 72px; letter-spacing: -2px; }
+    .timezone-label { font-size: 18px; }
+    .top-bar { padding-left: calc(16px + env(safe-area-inset-left)); padding-right: calc(16px + env(safe-area-inset-right)); }
+  }
 
-/* === Landscape (横向き) optimization === */
-@media (orientation: landscape) and (max-height: 500px) {
-.top-bar {
-height: calc(28px + env(safe-area-inset-top));
-padding-left: calc(20px + env(safe-area-inset-left));
-padding-right: calc(20px + env(safe-area-inset-right));
-background: rgba(19, 26, 34, 0.92);
-backdrop-filter: blur(8px);
--webkit-backdrop-filter: blur(8px);
-}
+  /* === Landscape (横向き) optimization === */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .top-bar {
+      height: calc(28px + env(safe-area-inset-top));
+      padding-left: calc(20px + env(safe-area-inset-left));
+      padding-right: calc(20px + env(safe-area-inset-right));
+    }
 
-```
-.logo {
-  font-size: 14px;
-  padding-bottom: 2px;
-}
+    .logo {
+      font-size: 14px;
+    }
 
-.logo::after {
-  height: 5px;
-  border-bottom-width: 1.5px;
-}
+    .time {
+      font-size: 140px;
+      letter-spacing: -3px;
+    }
 
-.top-bar-meta {
-  display: block;
-  font-size: 9px;
-  letter-spacing: 1px;
-}
+    .timezone-label {
+      font-size: 18px;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
 
-.time {
-  font-size: 140px;
-  letter-spacing: -3px;
-}
-
-.timezone-label {
-  font-size: 24px;
-  letter-spacing: 1.5px;
-  margin-bottom: 12px;
-}
-
-.date-row {
-  font-size: 13px;
-  margin-top: 16px;
-  gap: 14px;
-}
-```
-
-}
+    .date-row {
+      font-size: 13px;
+      margin-top: 16px;
+      gap: 14px;
+    }
+  }
 </style>
-
 </head>
 <body>
 <div class="container">
-  <div class="ambient"></div>
+  <div class="surface"></div>
+  <div class="glare"></div>
+  <canvas class="ripple-canvas" id="ripple"></canvas>
 
   <div class="top-bar">
     <div class="logo">Tokyo</div>
   </div>
 
-  <div class="clock-wrapper">
-    <div class="timezone-label">今日も1日頑張って！！</div>
-    <div class="time">
-      <span id="hours">00</span><span class="colon">:</span><span id="minutes">00</span><span class="colon">:</span><span id="seconds">00</span>
+  <div class="main-content">
+    <div class="clock-wrapper">
+      <div class="timezone-label">今日も1日頑張って！！</div>
+      <div class="time">
+        <span id="hours">00</span><span class="colon">:</span><span id="minutes">00</span><span class="colon">:</span><span id="seconds">00</span>
+      </div>
+      <div class="date-row">
+        <span id="date">2026年5月5日</span>
+        <span class="divider"></span>
+        <span class="weekday" id="weekday">火曜日</span>
+        <span class="divider"></span>
+        <span id="week">Week 19</span>
+      </div>
     </div>
-    <div class="date-row">
-      <span id="date">2026年5月5日</span>
-      <span class="divider"></span>
-      <span class="weekday" id="weekday">火曜日</span>
-      <span class="divider"></span>
-      <span id="week">Week 19</span>
-    </div>
-  </div>
 
-  <div class="todo-panel">
-    <div class="todo-header">
-      <div class="todo-title">Today's To Do</div>
-      <div class="todo-count" id="todo-count">0 / 0</div>
+    <div class="todo-panel">
+      <div class="todo-header">
+        <div class="todo-title">Today's To Do</div>
+        <div class="todo-count" id="todo-count">0 / 0</div>
+      </div>
+      <div class="todo-input-row">
+        <input type="text" class="todo-input" id="todo-input" placeholder="新しいタスクを入力してEnter..." maxlength="120">
+        <button class="todo-add-btn" id="todo-add-btn">追加</button>
+      </div>
+      <ul class="todo-list" id="todo-list"></ul>
     </div>
-    <div class="todo-input-row">
-      <input type="text" class="todo-input" id="todo-input" placeholder="新しいタスクを入力してEnter..." maxlength="120">
-      <button class="todo-add-btn" id="todo-add-btn">追加</button>
-    </div>
-    <ul class="todo-list" id="todo-list"></ul>
   </div>
 </div>
 
 <script>
+  // ============ Clock ============
   const weekdays = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'];
 
   function getJSTDate() {
@@ -486,22 +527,134 @@ backdrop-filter: blur(8px);
 
   function update() {
     const d = getJSTDate();
-    const h = d.getHours();
-    const m = d.getMinutes();
-    const s = d.getSeconds();
-
-    document.getElementById('hours').textContent = pad(h);
-    document.getElementById('minutes').textContent = pad(m);
-    document.getElementById('seconds').textContent = pad(s);
-
-    const dateStr = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
-    document.getElementById('date').textContent = dateStr;
+    document.getElementById('hours').textContent = pad(d.getHours());
+    document.getElementById('minutes').textContent = pad(d.getMinutes());
+    document.getElementById('seconds').textContent = pad(d.getSeconds());
+    document.getElementById('date').textContent = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
     document.getElementById('weekday').textContent = weekdays[d.getDay()];
     document.getElementById('week').textContent = `Week ${getWeekNumber(d)}`;
   }
-
   update();
   setInterval(update, 1000);
+
+  // ============ カーソル追従の波紋（メタリック版） ============
+  const rippleCanvas = document.getElementById('ripple');
+  const rippleCtx = rippleCanvas.getContext('2d');
+
+  function resizeRipple() {
+    rippleCanvas.width = window.innerWidth * window.devicePixelRatio;
+    rippleCanvas.height = window.innerHeight * window.devicePixelRatio;
+    rippleCanvas.style.width = window.innerWidth + 'px';
+    rippleCanvas.style.height = window.innerHeight + 'px';
+    rippleCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  }
+  resizeRipple();
+  window.addEventListener('resize', resizeRipple);
+
+  const ripples = [];
+  let lastRippleTime = 0;
+  let lastMouseX = -100;
+  let lastMouseY = -100;
+  let isAnimating = false;
+
+  function addRipple(x, y, strong = false) {
+    ripples.push({
+      x: x,
+      y: y,
+      radius: 0,
+      maxRadius: strong ? 350 : 220,
+      opacity: strong ? 0.7 : 0.45,
+      speed: strong ? 2.8 : 2.0
+    });
+    if (!isAnimating) {
+      isAnimating = true;
+      drawRipples();
+    }
+  }
+
+  // マウス移動: 大きくゆっくりした波紋を間隔を空けて
+  window.addEventListener('mousemove', (e) => {
+    const now = Date.now();
+    const dx = e.clientX - lastMouseX;
+    const dy = e.clientY - lastMouseY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // 間隔を広げてゆったりした波紋に
+    if (now - lastRippleTime > 180 || dist > 100) {
+      addRipple(e.clientX, e.clientY, false);
+      lastRippleTime = now;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+    }
+  });
+
+  // クリックで強い波紋
+  window.addEventListener('click', (e) => {
+    addRipple(e.clientX, e.clientY, true);
+  });
+
+  // タッチ対応
+  window.addEventListener('touchmove', (e) => {
+    if (e.touches.length > 0) {
+      const touch = e.touches[0];
+      const now = Date.now();
+      if (now - lastRippleTime > 180) {
+        addRipple(touch.clientX, touch.clientY, false);
+        lastRippleTime = now;
+      }
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 0) {
+      const touch = e.touches[0];
+      addRipple(touch.clientX, touch.clientY, true);
+    }
+  }, { passive: true });
+
+  function drawRipples() {
+    rippleCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+    for (let i = ripples.length - 1; i >= 0; i--) {
+      const r = ripples[i];
+      r.radius += r.speed;
+      r.opacity *= 0.985;
+
+      if (r.opacity < 0.01 || r.radius > r.maxRadius) {
+        ripples.splice(i, 1);
+        continue;
+      }
+
+      // メタリックなリング（外側 - 銀色のハイライト）
+      const grad = rippleCtx.createRadialGradient(r.x, r.y, r.radius * 0.85, r.x, r.y, r.radius);
+      grad.addColorStop(0, `rgba(255, 255, 255, 0)`);
+      grad.addColorStop(0.5, `rgba(220, 235, 240, ${r.opacity})`);
+      grad.addColorStop(1, `rgba(125, 211, 232, ${r.opacity * 0.5})`);
+
+      rippleCtx.beginPath();
+      rippleCtx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+      rippleCtx.strokeStyle = grad;
+      rippleCtx.lineWidth = 2;
+      rippleCtx.stroke();
+
+      // 内側のリング（シアンの光彩）
+      if (r.radius > 25) {
+        rippleCtx.beginPath();
+        rippleCtx.arc(r.x, r.y, r.radius * 0.7, 0, Math.PI * 2);
+        rippleCtx.strokeStyle = `rgba(125, 211, 232, ${r.opacity * 0.35})`;
+        rippleCtx.lineWidth = 1;
+        rippleCtx.stroke();
+      }
+    }
+
+    // 波紋がなくなったらアニメーションを止める（パフォーマンス改善）
+    if (ripples.length === 0) {
+      isAnimating = false;
+      return;
+    }
+
+    requestAnimationFrame(drawRipples);
+  }
 
   // ============ To Do feature ============
   const STORAGE_KEY = 'clock_todos_v1';
@@ -526,9 +679,7 @@ backdrop-filter: blur(8px);
   function saveTodos() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
-    } catch (e) {
-      // 保存失敗時は静かに無視
-    }
+    } catch (e) {}
   }
 
   function addTodo(text) {
@@ -612,6 +763,5 @@ backdrop-filter: blur(8px);
 
   renderTodos();
 </script>
-
 </body>
 </html>

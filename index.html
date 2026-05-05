@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+<!-- PWA settings -->
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Clock">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#131A22">
+
+<title>Clock</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+width: 100%;
+height: 100%;
+overflow: hidden;
+background: #131A22;
+font-family: ‘Amazon Ember’, ‘Helvetica Neue’, Arial, sans-serif;
+color: #131A22;
+-webkit-font-smoothing: antialiased;
+cursor: default;
+-webkit-tap-highlight-color: transparent;
+}
+
+.container {
+width: 100vw;
+height: 100vh;
+background: #FFFFFF;
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+position: relative;
+padding-top: env(safe-area-inset-top);
+padding-bottom: env(safe-area-inset-bottom);
+padding-left: env(safe-area-inset-left);
+padding-right: env(safe-area-inset-right);
+}
+
+.top-bar {
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+height: calc(56px + env(safe-area-inset-top));
+padding-top: env(safe-area-inset-top);
+padding-left: calc(32px + env(safe-area-inset-left));
+padding-right: calc(32px + env(safe-area-inset-right));
+background: #131A22;
+display: flex;
+align-items: center;
+z-index: 10;
+}
+
+.logo {
+font-size: 22px;
+font-weight: 700;
+letter-spacing: -0.5px;
+color: #FFFFFF;
+position: relative;
+padding-bottom: 4px;
+}
+
+.logo::after {
+content: ‘’;
+position: absolute;
+bottom: 0;
+left: 6px;
+right: 12px;
+height: 8px;
+border-bottom: 2.5px solid #FF9900;
+border-radius: 0 0 50% 50% / 0 0 100% 100%;
+transform: scaleY(0.6);
+}
+
+.top-bar-meta {
+margin-left: auto;
+font-size: 12px;
+color: #FFFFFF;
+letter-spacing: 1.5px;
+text-transform: uppercase;
+font-weight: 500;
+opacity: 0.9;
+}
+
+.clock-wrapper {
+text-align: center;
+position: relative;
+z-index: 1;
+-webkit-user-select: none;
+user-select: none;
+}
+
+.timezone-label {
+font-size: 14px;
+letter-spacing: 2px;
+color: #131A22;
+margin-bottom: 24px;
+font-weight: 700;
+opacity: 0.6;
+}
+
+.time {
+font-size: 180px;
+font-weight: 600;
+letter-spacing: -4px;
+line-height: 1;
+color: #131A22;
+font-variant-numeric: tabular-nums;
+display: flex;
+justify-content: center;
+align-items: baseline;
+}
+
+.time .colon {
+color: #131A22;
+margin: 0 8px;
+font-weight: 500;
+}
+
+.date-row {
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 24px;
+margin-top: 32px;
+font-size: 20px;
+color: #131A22;
+font-weight: 600;
+letter-spacing: 1px;
+}
+
+.date-row .divider {
+width: 5px;
+height: 5px;
+background: #131A22;
+border-radius: 50%;
+opacity: 0.5;
+}
+
+.weekday {
+color: #131A22;
+font-weight: 700;
+}
+
+.ambient {
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+width: 900px;
+height: 900px;
+background: radial-gradient(circle, rgba(255, 153, 0, 0.06) 0%, transparent 65%);
+pointer-events: none;
+z-index: 0;
+}
+
+/* === To Do panel (desktop only) === */
+.todo-panel {
+display: none;
+position: absolute;
+bottom: 40px;
+left: 50%;
+transform: translateX(-50%);
+width: min(640px, 80vw);
+max-height: 28vh;
+background: rgba(255, 255, 255, 0.85);
+backdrop-filter: blur(12px);
+-webkit-backdrop-filter: blur(12px);
+border: 1px solid rgba(19, 26, 34, 0.08);
+border-radius: 12px;
+padding: 20px 24px;
+z-index: 5;
+box-shadow: 0 8px 32px rgba(19, 26, 34, 0.06);
+display: flex;
+flex-direction: column;
+}
+
+.todo-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 12px;
+flex-shrink: 0;
+}
+
+.todo-title {
+font-size: 11px;
+letter-spacing: 3px;
+text-transform: uppercase;
+font-weight: 700;
+color: #131A22;
+opacity: 0.7;
+}
+
+.todo-count {
+font-size: 11px;
+letter-spacing: 1px;
+color: #131A22;
+opacity: 0.5;
+font-weight: 500;
+}
+
+.todo-input-row {
+display: flex;
+gap: 8px;
+margin-bottom: 12px;
+flex-shrink: 0;
+}
+
+.todo-input {
+flex: 1;
+border: none;
+border-bottom: 1.5px solid rgba(19, 26, 34, 0.15);
+padding: 8px 4px;
+font-size: 15px;
+font-family: inherit;
+color: #131A22;
+background: transparent;
+outline: none;
+transition: border-color 0.2s;
+}
+
+.todo-input:focus {
+border-bottom-color: #FF9900;
+}
+
+.todo-input::placeholder {
+color: rgba(19, 26, 34, 0.3);
+}
+
+.todo-add-btn {
+border: none;
+background: #131A22;
+color: #FFFFFF;
+padding: 0 16px;
+font-size: 13px;
+font-weight: 600;
+letter-spacing: 1px;
+border-radius: 6px;
+cursor: pointer;
+font-family: inherit;
+transition: opacity 0.2s;
+}
+
+.todo-add-btn:hover {
+opacity: 0.85;
+}
+
+.todo-add-btn:active {
+transform: translateY(1px);
+}
+
+.todo-list {
+list-style: none;
+overflow-y: auto;
+flex: 1;
+margin: 0 -8px;
+padding: 0 8px;
+}
+
+.todo-list::-webkit-scrollbar {
+width: 6px;
+}
+
+.todo-list::-webkit-scrollbar-thumb {
+background: rgba(19, 26, 34, 0.15);
+border-radius: 3px;
+}
+
+.todo-item {
+display: flex;
+align-items: center;
+gap: 12px;
+padding: 8px 4px;
+border-bottom: 1px solid rgba(19, 26, 34, 0.06);
+font-size: 14px;
+color: #131A22;
+transition: opacity 0.2s;
+}
+
+.todo-item:last-child {
+border-bottom: none;
+}
+
+.todo-checkbox {
+width: 18px;
+height: 18px;
+border: 1.5px solid rgba(19, 26, 34, 0.3);
+border-radius: 4px;
+cursor: pointer;
+flex-shrink: 0;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: all 0.15s;
+background: transparent;
+}
+
+.todo-checkbox:hover {
+border-color: #FF9900;
+}
+
+.todo-checkbox.checked {
+background: #FF9900;
+border-color: #FF9900;
+}
+
+.todo-checkbox.checked::after {
+content: ‘’;
+width: 5px;
+height: 9px;
+border: solid #FFFFFF;
+border-width: 0 2px 2px 0;
+transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.todo-text {
+flex: 1;
+word-break: break-word;
+transition: opacity 0.2s;
+}
+
+.todo-item.done .todo-text {
+text-decoration: line-through;
+opacity: 0.4;
+}
+
+.todo-delete {
+border: none;
+background: transparent;
+color: rgba(19, 26, 34, 0.3);
+cursor: pointer;
+font-size: 18px;
+line-height: 1;
+padding: 4px 8px;
+border-radius: 4px;
+transition: all 0.15s;
+font-family: inherit;
+flex-shrink: 0;
+}
+
+.todo-delete:hover {
+color: #d13438;
+background: rgba(209, 52, 56, 0.08);
+}
+
+.todo-empty {
+text-align: center;
+padding: 16px 0;
+font-size: 13px;
+color: rgba(19, 26, 34, 0.35);
+font-style: italic;
+}
+
+/* デスクトップ表示時のみTo Doパネルを表示 */
+@media (min-width: 1024px) and (min-height: 700px) {
+.todo-panel {
+display: flex;
+}
+}
+
+@media (max-width: 900px) {
+.time { font-size: 110px; letter-spacing: -3px; }
+.date-row { font-size: 14px; gap: 16px; }
+}
+
+@media (max-width: 500px) {
+.time { font-size: 72px; letter-spacing: -2px; }
+.top-bar { padding-left: calc(16px + env(safe-area-inset-left)); padding-right: calc(16px + env(safe-area-inset-right)); }
+.top-bar-meta { display: none; }
+}
+
+/* === Landscape (横向き) optimization === */
+@media (orientation: landscape) and (max-height: 500px) {
+.top-bar {
+height: calc(28px + env(safe-area-inset-top));
+padding-left: calc(20px + env(safe-area-inset-left));
+padding-right: calc(20px + env(safe-area-inset-right));
+background: rgba(19, 26, 34, 0.92);
+backdrop-filter: blur(8px);
+-webkit-backdrop-filter: blur(8px);
+}
+
+```
+.logo {
+  font-size: 14px;
+  padding-bottom: 2px;
+}
+
+.logo::after {
+  height: 5px;
+  border-bottom-width: 1.5px;
+}
+
+.top-bar-meta {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+
+.time {
+  font-size: 140px;
+  letter-spacing: -3px;
+}
+
+.timezone-label {
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  margin-bottom: 12px;
+}
+
+.date-row {
+  font-size: 13px;
+  margin-top: 16px;
+  gap: 14px;
+}
+```
+
+}
+</style>
+
+</head>
+<body>
+<div class="container">
+  <div class="ambient"></div>
+
+  <div class="top-bar">
+    <div class="logo">amazon</div>
+    <div class="top-bar-meta" id="meta">JST · TOKYO</div>
+  </div>
+
+  <div class="clock-wrapper">
+    <div class="timezone-label">愛梨ファイト！</div>
+    <div class="time">
+      <span id="hours">00</span><span class="colon">:</span><span id="minutes">00</span><span class="colon">:</span><span id="seconds">00</span>
+    </div>
+    <div class="date-row">
+      <span id="date">2026年5月5日</span>
+      <span class="divider"></span>
+      <span class="weekday" id="weekday">火曜日</span>
+      <span class="divider"></span>
+      <span id="week">Week 19</span>
+    </div>
+  </div>
+
+  <div class="todo-panel">
+    <div class="todo-header">
+      <div class="todo-title">Today's To Do</div>
+      <div class="todo-count" id="todo-count">0 / 0</div>
+    </div>
+    <div class="todo-input-row">
+      <input type="text" class="todo-input" id="todo-input" placeholder="新しいタスクを入力してEnter..." maxlength="120">
+      <button class="todo-add-btn" id="todo-add-btn">追加</button>
+    </div>
+    <ul class="todo-list" id="todo-list"></ul>
+  </div>
+</div>
+
+<script>
+  const weekdays = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'];
+
+  function getJSTDate() {
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    return new Date(utc + (9 * 3600000));
+  }
+
+  function getWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  }
+
+  function pad(n) {
+    return n.toString().padStart(2, '0');
+  }
+
+  function update() {
+    const d = getJSTDate();
+    const h = d.getHours();
+    const m = d.getMinutes();
+    const s = d.getSeconds();
+
+    document.getElementById('hours').textContent = pad(h);
+    document.getElementById('minutes').textContent = pad(m);
+    document.getElementById('seconds').textContent = pad(s);
+
+    const dateStr = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+    document.getElementById('date').textContent = dateStr;
+    document.getElementById('weekday').textContent = weekdays[d.getDay()];
+    document.getElementById('week').textContent = `Week ${getWeekNumber(d)}`;
+  }
+
+  update();
+  setInterval(update, 1000);
+
+  // ============ To Do feature ============
+  const STORAGE_KEY = 'clock_todos_v1';
+  const todoListEl = document.getElementById('todo-list');
+  const todoInputEl = document.getElementById('todo-input');
+  const todoAddBtnEl = document.getElementById('todo-add-btn');
+  const todoCountEl = document.getElementById('todo-count');
+
+  let todos = loadTodos();
+
+  function loadTodos() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveTodos() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    } catch (e) {
+      // 保存失敗時は静かに無視
+    }
+  }
+
+  function addTodo(text) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    todos.push({
+      id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+      text: trimmed,
+      done: false
+    });
+    saveTodos();
+    renderTodos();
+  }
+
+  function toggleTodo(id) {
+    const t = todos.find(x => x.id === id);
+    if (t) {
+      t.done = !t.done;
+      saveTodos();
+      renderTodos();
+    }
+  }
+
+  function deleteTodo(id) {
+    todos = todos.filter(x => x.id !== id);
+    saveTodos();
+    renderTodos();
+  }
+
+  function renderTodos() {
+    todoListEl.innerHTML = '';
+
+    if (todos.length === 0) {
+      const empty = document.createElement('li');
+      empty.className = 'todo-empty';
+      empty.textContent = 'タスクはまだありません';
+      todoListEl.appendChild(empty);
+    } else {
+      todos.forEach(t => {
+        const li = document.createElement('li');
+        li.className = 'todo-item' + (t.done ? ' done' : '');
+
+        const checkbox = document.createElement('div');
+        checkbox.className = 'todo-checkbox' + (t.done ? ' checked' : '');
+        checkbox.addEventListener('click', () => toggleTodo(t.id));
+
+        const text = document.createElement('div');
+        text.className = 'todo-text';
+        text.textContent = t.text;
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'todo-delete';
+        delBtn.textContent = '×';
+        delBtn.title = '削除';
+        delBtn.addEventListener('click', () => deleteTodo(t.id));
+
+        li.appendChild(checkbox);
+        li.appendChild(text);
+        li.appendChild(delBtn);
+        todoListEl.appendChild(li);
+      });
+    }
+
+    const doneCount = todos.filter(t => t.done).length;
+    todoCountEl.textContent = `${doneCount} / ${todos.length}`;
+  }
+
+  todoAddBtnEl.addEventListener('click', () => {
+    addTodo(todoInputEl.value);
+    todoInputEl.value = '';
+    todoInputEl.focus();
+  });
+
+  todoInputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTodo(todoInputEl.value);
+      todoInputEl.value = '';
+    }
+  });
+
+  renderTodos();
+</script>
+
+</body>
+</html>
